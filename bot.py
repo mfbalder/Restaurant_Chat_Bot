@@ -73,7 +73,7 @@ d = {
 		'return': 'question',
 		'bot_statement': "And last but not least, what's your price range?",
 		'branches': {
-		
+
 		}
 	},
 	9: {
@@ -99,18 +99,23 @@ def traverse_questions(last_state, user_answer):
 
 	global question_path
 
+
+
 	if last_state == 0:
 		return d[1]['bot_statement']
 
 	clean_answer = user_answer.split()
-	for item in d[locals()['last_state']]['branches']:
-			for each in item:
+	for branch in d[locals()['last_state']]['branches']:
+			for each in branch:
 				if each in clean_answer:
 					print each
-					next_state = d[locals()['last_state']]['branches'][locals()['item']][0]
-					question_path.append(next_state)
-					filtered_query = eval(d[locals()['last_state']]['branches'][locals()['item']][1])
-					print r[0].name
+					next_state = d[locals()['last_state']]['branches'][locals()['branch']][0]
+					answer_branch = branch
+					question_path.append((last_state, answer_branch))
+					print question_path
+					# question_path.append(next_state)
+					filtered_query = eval(d[locals()['last_state']]['branches'][locals()['branch']][1])
+					# print r[0].name
 
 	print "next state", next_state				
 	return next_state
