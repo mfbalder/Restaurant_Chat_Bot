@@ -33,7 +33,7 @@ d = {
 	6: {
 		'return': 'answer',
 		'bot_statement': 'Righto, bar it is!',
-		'query': 
+		'query': None
 	}
 }
 
@@ -82,7 +82,15 @@ def project_logic():
 					next_point = d[locals()['x']]['branches'][locals()['item']]
 					print next_point
 					x = next_point
-		
+
+
+# [1, 2, 3, 4] --> list of question #s for order and to keep track of its state
+# state machine
+# the function is a stateless track
+# adding the query string after each branch
+# no while loop, pass the current state and the answer into the project_logic function	
+# my chat bot as a state machine --> each question is a state, with the branches as transitions
+# should i write a class that represents each node --> current state, next state, etc.
 
 	
 
