@@ -1,8 +1,10 @@
 import time
 from nltk.corpus import stopwords
+import model
 
 stopword_list = stopwords.words("english")
 
+city = None
 question_path = []
 query_filters = []
 
@@ -13,27 +15,68 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): 2,
-			('no', 'nope', 'nah', 'not'): 3
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, 'model.session.query(model.Restaurant).join(model.Category).filter((model.Category.category=="Food") | (model.Category.category=="Restaurant")).all()'],
+			('no', 'nope', 'nah', 'not'): [3]
 		}
 	},
 	2: {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): 4,
-			('meal',): 5
+			('snack',): 5,
+			('meal',): 4
 		}
 	},
 	3: {
 		'return': 'question',
 		'bot_statement': 'Ok then. Is a stiff drink in order?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): 6,
-			('no', 'nope', 'nah', 'not'): 7
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): 9,
+			('no', 'nope', 'nah', 'not'): 10
 		}
 	},
+	4: {
+		'return': 'question',
+		'bot_statement': 'Are we thinking breakfast, lunch or dinner?',
+		'branches': {
+			('breakfast', 'brunch'): [7],
+			('lunch'): [6],
+			('dinner'): [6]
+		}
+	},
+	5: {
+		'return': 'question',
+		'bot_statement': 0#QUERY*****
+	},
 	6: {
+		'return': 'question',
+		'bot_statement': 'Eat in, take out, or delivery?',
+		'branches': {
+			('eat in', 'in'): [7],
+			('take out', 'tk', 'out', 'pick up'): [7],
+			('delivery', 'deliver', 'delivered'): [7]
+		}
+	},
+	7: {
+		'return': 'question',
+		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
+		'branches': {
+			('nope', 'no', 'nah', 'none', 'negative'): [8],
+			('vegetarian',): [8],
+			('vegan',): [8],
+			('gf', 'gluten', 'gluten-free'): [8],
+			('soy',): [8],
+			('halal',): [8]
+		}
+	},
+	8: {
+		'return': 'question',
+		'bot_statement': "And last but not least, what's your price range?",
+		'branches': {
+		
+		}
+	},
+	9: {
 		'return': 'answer',
 		'bot_statement': 'Righto, bar it is!',
 		'query': None
@@ -64,8 +107,10 @@ def traverse_questions(last_state, user_answer):
 			for each in item:
 				if each in clean_answer:
 					print each
-					next_state = d[locals()['last_state']]['branches'][locals()['item']]
+					next_state = d[locals()['last_state']]['branches'][locals()['item']][0]
 					question_path.append(next_state)
+					filtered_query = eval(d[locals()['last_state']]['branches'][locals()['item']][1])
+					print r[0].name
 
 	print "next state", next_state				
 	return next_state
@@ -119,6 +164,8 @@ def main():
 	start = raw_input().lower()
 	if "hi" in start or "hello" in start and "ronnie" in start:
 		print "Well hello there friend!"
+		print "What city are you in?"
+		city = raw_input()
 		traverse_questions(0, None)
 	else:
 		print "I'm Ronnie. I have just met you and a looove you will you be my master?"
