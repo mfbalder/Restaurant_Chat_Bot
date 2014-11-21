@@ -3,6 +3,9 @@ from nltk.corpus import stopwords
 
 stopword_list = stopwords.words("english")
 
+question_path = []
+query_filters = []
+
 
 
 d = {
@@ -37,23 +40,41 @@ d = {
 	}
 }
 
-# start with 1:
-	# if 1 has an s in it, get the value of s, save those to the info dictionary
-	# follow the branch
-# to 2
-	# if 2 has a q in it, print that question and get an answer
-	# depending on which branch matches the answer, move to that value
 
 def run_query(data_dict, data_attr, value):
 	data_dict.setdefault(data, value)
 
+def traverse_questions(last_state, user_answer):
+	"""last state --> the state that a question was just asked from (int)
+	   user_answer --> the user's answer to that question (str)
 
+	   Checks that state's branches to see which of them match the answer.
+	   Gets the next state from that branch.
+	   Adds that state to the list tracking the path of states.
+
+	   Returns the next state"""
+
+	global question_path
+
+	if last_state == 0:
+		return d[1]['bot_statement']
+
+	clean_answer = user_answer.split()
+	for item in d[locals()['last_state']]['branches']:
+			for each in item:
+				if each in clean_answer:
+					print each
+					next_state = d[locals()['last_state']]['branches'][locals()['item']]
+					question_path.append(next_state)
+
+	print "next state", next_state				
+	return next_state
 
 
 def project_logic():
 	global stored_info
-	# set the current time
-	stored_info.setdefault('current_time', time.strftime("%H:%M"))
+	# set the current time --> not dealing with this now
+	# stored_info.setdefault('current_time', time.strftime("%H:%M"))
 
 	x = 1
 	while True:
@@ -98,7 +119,7 @@ def main():
 	start = raw_input().lower()
 	if "hi" in start or "hello" in start and "ronnie" in start:
 		print "Well hello there friend!"
-		project_logic()
+		traverse_questions(0, None)
 	else:
 		print "I'm Ronnie. I have just met you and a looove you will you be my master?"
 
