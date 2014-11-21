@@ -1,6 +1,7 @@
 import time
+from nltk.corpus import stopwords
 
-stored_info = {}
+stopword_list = stopwords.words("english")
 
 
 
@@ -9,17 +10,30 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			'yes': 2,
-			'no': 3
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): 2,
+			('no', 'nope', 'nah', 'not'): 3
 		}
 	},
 	2: {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			'snack': 3,
-			'meal': 4
+			('snack',): 4,
+			('meal',): 5
 		}
+	},
+	3: {
+		'return': 'question',
+		'bot_statement': 'Ok then. Is a stiff drink in order?',
+		'branches': {
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): 6,
+			('no', 'nope', 'nah', 'not'): 7
+		}
+	},
+	6: {
+		'return': 'answer',
+		'bot_statement': 'Righto, bar it is!',
+		'query': 
 	}
 }
 
@@ -30,17 +44,9 @@ d = {
 	# if 2 has a q in it, print that question and get an answer
 	# depending on which branch matches the answer, move to that value
 
-def store_data(data_dict, data_attr, value):
+def run_query(data_dict, data_attr, value):
 	data_dict.setdefault(data, value)
 
-
-def question(the_question, yes, no):
-	print the_question
-	answer = raw_input(">")
-	if answer.lower() == "yes" or answer.lower() == "ya":
-		pass
-	if answer.lower() == "no":
-		question_dict[no]
 
 
 
@@ -57,18 +63,32 @@ def project_logic():
 		print d[locals()['x']]['bot_statement']
 
 		# gets an answer from the user
-		answer = raw_input(">")
+		answer = raw_input()
+		clean_answer = answer.split()
+		# clean_answer = [word for word in answer.split() if word not in stopword_list]
+		# print clean_answer
 
 		# gets the value for that branch
-		next_point = d[locals()['x']]['branches'][locals()['answer']]
-		print next_point
-		x = next_point
+		# for item in d[locals()['x']]['branches']:
+		# 	for word in clean_answer:
+		# 		if word in item:
+		# 			next_point = d[locals()['x']]['branches'][locals()['item']]
+		# 			x = next_point
+
+		for item in d[locals()['x']]['branches']:
+			for each in item:
+				if each in clean_answer:
+					print each
+					next_point = d[locals()['x']]['branches'][locals()['item']]
+					print next_point
+					x = next_point
+		
 
 	
 
 def main():
-	start = raw_input(">")
-	if "hi" in start.lower() and "ronnie" in start.lower():
+	start = raw_input().lower()
+	if "hi" in start or "hello" in start and "ronnie" in start:
 		print "Well hello there friend!"
 		project_logic()
 	else:
