@@ -13,28 +13,31 @@ city = None
 question_path = []
 query_filters = []
 # query = model.session.query(model.Restaurant).join(model.Category)
-query = 'SELECT * FROM restaurants as r'
+query = None
+join_half = "select name from restaurants as r"
+where_half = " where"
+# select * from restaurants as r join categories on r.id=c.business_id where c.name = 'Food'
 
 
-def join(categories_alias, current_query):
-	current_query = current_query + " join categories as %s" % categories_alias
-	return current_query
+def join(categories_alias, join_query):
+	join_query = join_query + " join categories as %s on r.id=%s.business_id" % (categories_alias, categories_alias)
+	return join_query
 
 d = {
 	1: {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, "c1.category='Food' OR c1.category='Restaurant'", join, 'c1'],
-			('no', 'nope', 'nah', 'not'): [3]
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " c1.category IN ('Food', 'Restaurant')", join, 'c1'],
+			('no', 'nope', 'nah', 'not'): [3, " c1.category IN ('Breweries', 'Coffee & Tea', 'Bars', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs')", join, 'c1']
 		}
 	},
 	2: {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): [5, (model.Category.category=='Bakeries')],
-			('meal',): 4
+			('snack',): [5, " AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Store', 'Desserts')", join, "c2"],
+			('meal',): [4, " AND c1.category NOT IN ('Food')", None, None]
 		}
 	},
 	3: {
@@ -136,6 +139,9 @@ def traverse_questions(last_state, user_answer):
 
 	global question_path
 	global query
+	global join_half
+	global where_half
+	global cursor
 
 
 
@@ -155,8 +161,13 @@ def traverse_questions(last_state, user_answer):
 					cat_alias = d[locals()['last_state']]['branches'][locals()['branch']][3]
 					fxn = d[locals()['last_state']]['branches'][locals()['branch']][2]
 					if fxn:
-						query = fxn(cat_alias, query)
+						join_half = fxn(cat_alias, join_half)
+					filters = d[locals()['last_state']]['branches'][locals()['branch']][1]
+					where_half = where_half + filters
+					query = join_half + where_half
 					print query
+					cursor.execute(query)
+					print "all: ", cursor.fetchall()
 
 
 	# query = query.filter(f)
