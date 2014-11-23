@@ -1,21 +1,31 @@
 import time
 from nltk.corpus import stopwords
 import model
+from sqlalchemy import or_, and_
+import psycopg2
+
+dbconn = psycopg2.connect('dbname=restaurantrec host=localhost port=5432')
+cursor = dbconn.cursor()
 
 stopword_list = stopwords.words("english")
 
 city = None
 question_path = []
 query_filters = []
+# query = model.session.query(model.Restaurant).join(model.Category)
+query = 'SELECT * FROM restaurants as r'
 
 
+def join(categories_alias, current_query):
+	current_query = current_query + " join categories as %s" % categories_alias
+	return current_query
 
 d = {
 	1: {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, 'model.session.query(model.Restaurant).join(model.Category).filter((model.Category.category=="Food") | (model.Category.category=="Restaurant")).all()'],
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, "c1.category='Food' OR c1.category='Restaurant'", join, 'c1'],
 			('no', 'nope', 'nah', 'not'): [3]
 		}
 	},
@@ -23,7 +33,7 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): 5,
+			('snack',): [5, (model.Category.category=='Bakeries')],
 			('meal',): 4
 		}
 	},
@@ -77,15 +87,42 @@ d = {
 		}
 	},
 	9: {
-		'return': 'answer',
-		'bot_statement': 'Righto, bar it is!',
-		'query': None
+		'return': 'question',
+		'bot_statement': 'Righto, bar it is! What kind of vibe were we thinkin? Romantic? Intimate...? Chill yo?',
+		'branches': {
+			('intimate',): 0,####QUERY,
+			('romantic',): [11],
+			('chill', 'casual'): [12]
+		}
+	},
+	10: {
+		'return': 'question',
+		'bot_statement': 'Do you have a preference for coffee or tea?\nTea, right? You know you like tea! (Tea.)',
+		'branches': {
+			('cafe', 'coffee', 'cappuccino'): 0,###########,
+			('tea', 'leaf', 'leaves'): 0,#######,
+			('nah', 'nope', 'no preference', "don't care", 'negative'): 0######
+		}
+
+	},
+	11: {
+
 	}
 }
 
 
+
+
 def run_query(data_dict, data_attr, value):
 	data_dict.setdefault(data, value)
+
+def generate_query(queryobj, listoffilters):
+	l = ""
+	for f in listoffilters:
+		l += ".filter(l)"
+
+	return l
+
 
 def traverse_questions(last_state, user_answer):
 	"""last state --> the state that a question was just asked from (int)
@@ -98,6 +135,7 @@ def traverse_questions(last_state, user_answer):
 	   Returns the next state"""
 
 	global question_path
+	global query
 
 
 
@@ -113,9 +151,29 @@ def traverse_questions(last_state, user_answer):
 					answer_branch = branch
 					question_path.append((last_state, answer_branch))
 					print question_path
-					# question_path.append(next_state)
-					filtered_query = eval(d[locals()['last_state']]['branches'][locals()['branch']][1])
-					# print r[0].name
+
+					cat_alias = d[locals()['last_state']]['branches'][locals()['branch']][3]
+					fxn = d[locals()['last_state']]['branches'][locals()['branch']][2]
+					if fxn:
+						query = fxn(cat_alias, query)
+					print query
+
+
+	# query = query.filter(f)
+	# print "new query: ", query
+	# newq = query.filter((model.Category.category=='Bakeries') | (model.Category.category=='Dessert') | (model.Category.category=='Ice Cream & Frozen Yogurt'))
+	
+	# run_query = model.session.query(model.Restaurant).join(model.Category).filter(model.Category.category=='Food').filter((model.Category.category=='Bakeries') OR (model.Category.category=='Dessert') OR (model.Category.category=='Ice Cream & Frozen Yogurt')).all()
+
+	# run_query = model.session.query(model.Restaurant).filter(model.Restaurant.categories.any(model.Category.category=='Bakeries')).all()
+
+	# run_query = model.session.query(model.Restaurant).join(model.Category).filter(or_(model.Category.category=='Bakeries', model.Category.category=='Ice Cream & Frozen Yogurt')).filter(model.Category.category=='Food').all()
+
+
+
+
+	# for i in run_query[0].categories:
+	# 	print i.category
 
 	print "next state", next_state				
 	return next_state
