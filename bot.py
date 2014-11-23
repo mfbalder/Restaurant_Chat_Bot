@@ -26,79 +26,86 @@ def join(categories_alias, join_query):
 d = {
 	1: {
 		'return': 'question',
-		'bot_statement': 'Are you hungry?',
+		'bot_statement': 'What city are you in?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category NOT IN('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", "where_exists", 'c1'],
-			('no', 'nope', 'nah', 'not'): [3, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'where_exists', 'c1']
+			'answer': [2, " WHERE r.city = '?'", "where", None]
 		}
 	},
 	2: {
 		'return': 'question',
-		'bot_statement': 'Snack or meal?',
+		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('snack',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'where_exists', "c2"],
-			('meal',): [4, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "where_exists", None]
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [3, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category NOT IN('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", "where_exists", 'c1'],
+			('no', 'nope', 'nah', 'not'): [4, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'where_exists', 'c1']
 		}
 	},
 	3: {
 		'return': 'question',
-		'bot_statement': 'Ok then. Is a stiff drink in order?',
+		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [9, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Bars', 'Breweries', 'Dive Bars', 'Sports Bars', 'Wine Bars', 'Pubs'))", "where_exists", None],
-			('no', 'nope', 'nah', 'not'): [10, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Coffee & Tea', 'Cafes', 'Tea Rooms'))", "where_exists", None]
+			('snack',): [6, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'where_exists', "c2"],
+			('meal',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "where_exists", None]
 		}
 	},
 	4: {
 		'return': 'question',
-		'bot_statement': 'Are we thinking breakfast, lunch or dinner?',
+		'bot_statement': 'Ok then. Is a stiff drink in order?',
 		'branches': {
-			('breakfast', 'brunch'): [7],
-			('lunch'): [6],
-			('dinner'): [6]
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [10, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Bars', 'Breweries', 'Dive Bars', 'Sports Bars', 'Wine Bars', 'Pubs'))", "where_exists", None],
+			('no', 'nope', 'nah', 'not'): [11, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Coffee & Tea', 'Cafes', 'Tea Rooms'))", "where_exists", None]
 		}
 	},
 	5: {
 		'return': 'question',
-		'bot_statement': 0#QUERY*****
+		'bot_statement': 'Are we thinking breakfast, lunch or dinner?',
+		'branches': {
+			('breakfast', 'brunch'): [8, " AND EXISTS(SELECT 1 FROM categories as c4 WHERE c4.business_id=r.id AND c4.category='Breakfast & Brunch')", "where_exists"],
+			('lunch'): [7],
+			('dinner'): [7]
+		}
 	},
 	6: {
 		'return': 'question',
-		'bot_statement': 'Eat in, take out, or delivery?',
-		'branches': {
-			('eat in', 'in'): [7],
-			('take out', 'tk', 'out', 'pick up'): [7],
-			('delivery', 'deliver', 'delivered'): [7]
-		}
+		'bot_statement': 0#QUERY*****
 	},
 	7: {
 		'return': 'question',
-		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
+		'bot_statement': 'Eat in, take out, or delivery?',
 		'branches': {
-			('nope', 'no', 'nah', 'none', 'negative'): [8],
-			('vegetarian',): [8],
-			('vegan',): [8],
-			('gf', 'gluten', 'gluten-free'): [8],
-			('soy',): [8],
-			('halal',): [8]
+			('eat in', 'in'): [8],
+			('take out', 'tk', 'out', 'pick up'): [8],
+			('delivery', 'deliver', 'delivered'): [8]
 		}
 	},
 	8: {
+		'return': 'question',
+		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
+		'branches': {
+			('nope', 'no', 'nah', 'none', 'negative'): [9],
+			('vegetarian',): [9],
+			('vegan',): [9],
+			('gf', 'gluten', 'gluten-free'): [9],
+			('soy',): [9],
+			('halal',): [9]
+		}
+	},
+	9: {
 		'return': 'question',
 		'bot_statement': "And last but not least, what's your price range?",
 		'branches': {
 
 		}
 	},
-	9: {
+	10: {
 		'return': 'question',
 		'bot_statement': 'Righto, bar it is! What kind of vibe were we thinkin? Romantic? Intimate...? Chill yo?',
 		'branches': {
 			('intimate',): 0,####QUERY,
-			('romantic',): [11],
-			('chill', 'casual'): [12]
+			('romantic',): [12],
+			('chill', 'casual'): [13]
 		}
 	},
-	10: {
+	11: {
 		'return': 'question',
 		'bot_statement': 'Do you have a preference for coffee or tea?\nTea, right? You know you like tea! (Tea.)',
 		'branches': {
@@ -108,7 +115,7 @@ d = {
 		}
 
 	},
-	11: {
+	12: {
 
 	}
 }
@@ -147,6 +154,14 @@ def traverse_questions(last_state, user_answer):
 
 	if last_state == 0:
 		return d[1]['bot_statement']
+	if last_state == 1:
+		next_state = d[1]['branches']['answer'][0]
+		query_piece = d[1]['branches']['answer'][1].replace('?', user_answer)
+		query = query + query_piece
+		print query
+		cursor.execute(query)
+		print "with city: ", cursor.fetchall()
+		return next_state
 
 	clean_answer = user_answer.split()
 	for branch in d[locals()['last_state']]['branches']:
@@ -170,7 +185,9 @@ def traverse_questions(last_state, user_answer):
 					# query = join_half + where_half
 					print query
 					cursor.execute(query)
-					print "all: ", cursor.fetchall()
+					results = cursor.fetchall()
+					if results != []:
+						print "all: ", results
 
 
 	# query = query.filter(f)
