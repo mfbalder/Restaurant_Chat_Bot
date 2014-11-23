@@ -12,11 +12,11 @@ stopword_list = stopwords.words("english")
 city = None
 question_path = []
 query_filters = []
-# query = model.session.query(model.Restaurant).join(model.Category)
-query = None
-join_half = "select name from restaurants as r"
-where_half = " where"
-# select * from restaurants as r join categories on r.id=c.business_id where c.name = 'Food'
+
+query = "SELECT r.name FROM restaurants AS r join categories AS c ON r.id=c.business_id"
+# join_half = "select name from restaurants as r"
+# where_half = " where"
+
 
 
 def join(categories_alias, join_query):
@@ -28,8 +28,8 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " c1.category IN ('Food', 'Restaurant')", join, 'c1'],
-			('no', 'nope', 'nah', 'not'): [3, " c1.category IN ('Breweries', 'Coffee & Tea', 'Bars', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs')", join, 'c1']
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND (c1.category='Food' or c1.category='Restaurants'))", "where_exists", 'c1'],
+			('no', 'nope', 'nah', 'not'): [3, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'where_exists', 'c1']
 		}
 	},
 	2: {
@@ -158,13 +158,16 @@ def traverse_questions(last_state, user_answer):
 					question_path.append((last_state, answer_branch))
 					print question_path
 
-					cat_alias = d[locals()['last_state']]['branches'][locals()['branch']][3]
-					fxn = d[locals()['last_state']]['branches'][locals()['branch']][2]
-					if fxn:
-						join_half = fxn(cat_alias, join_half)
-					filters = d[locals()['last_state']]['branches'][locals()['branch']][1]
-					where_half = where_half + filters
-					query = join_half + where_half
+					# cat_alias = d[locals()['last_state']]['branches'][locals()['branch']][3]
+					# fxn = d[locals()['last_state']]['branches'][locals()['branch']][2]
+					query_action = d[locals()['last_state']]['branches'][locals()['branch']][2]
+					query_addition = d[locals()['last_state']]['branches'][locals()['branch']][1]
+					if query_action == 'where_exists':
+						query = query + query_addition
+						# join_half = fxn(cat_alias, join_half)
+					# filters = d[locals()['last_state']]['branches'][locals()['branch']][1]
+					# where_half = where_half + filters
+					# query = join_half + where_half
 					print query
 					cursor.execute(query)
 					print "all: ", cursor.fetchall()
