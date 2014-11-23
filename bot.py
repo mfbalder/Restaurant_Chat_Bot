@@ -13,7 +13,7 @@ city = None
 question_path = []
 query_filters = []
 
-query = "SELECT r.name FROM restaurants AS r join categories AS c ON r.id=c.business_id"
+query = "SELECT r.name, c.category FROM restaurants AS r join categories AS c ON r.id=c.business_id"
 # join_half = "select name from restaurants as r"
 # where_half = " where"
 
@@ -28,7 +28,7 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND (c1.category='Food' or c1.category='Restaurants'))", "where_exists", 'c1'],
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [2, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category NOT IN('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", "where_exists", 'c1'],
 			('no', 'nope', 'nah', 'not'): [3, " WHERE EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'where_exists', 'c1']
 		}
 	},
@@ -36,16 +36,16 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): [5, " AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Store', 'Desserts')", join, "c2"],
-			('meal',): [4, " AND c1.category NOT IN ('Food')", None, None]
+			('snack',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'where_exists', "c2"],
+			('meal',): [4, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "where_exists", None]
 		}
 	},
 	3: {
 		'return': 'question',
 		'bot_statement': 'Ok then. Is a stiff drink in order?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): 9,
-			('no', 'nope', 'nah', 'not'): 10
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [9, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Bars', 'Breweries', 'Dive Bars', 'Sports Bars', 'Wine Bars', 'Pubs'))", "where_exists", None],
+			('no', 'nope', 'nah', 'not'): [10, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Coffee & Tea', 'Cafes', 'Tea Rooms'))", "where_exists", None]
 		}
 	},
 	4: {
