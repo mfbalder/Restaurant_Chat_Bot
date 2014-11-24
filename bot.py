@@ -65,7 +65,7 @@ d = {
 		'bot_statement': 'Eat in, take out, or delivery?',
 		'branches': {
 			('eat in', 'in'): [8],
-			('take out', 'tk', 'out', 'pick up'): [8, " AND r.takeout=True", "add_to_query"],
+			('takeout', 'tk', 'out', 'pick up'): [8, " AND r.takeout=True", "add_to_query"],
 			('delivery', 'deliver', 'delivered'): [8, " AND r.delivery=True", "add_to_query"],
 			("LAZY",): [8, " AND r.drive_thru=True", "add_to_query"]
 		}
@@ -74,7 +74,7 @@ d = {
 		'return': 'question',
 		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
 		'branches': {
-			('nope', 'no', 'nah', 'none', 'negative'): [9],
+			('nope', 'no', 'nah', 'none', 'negative'): [9, None, "no_change"],
 			('vegetarian',): [9, " AND r.vegetarian=True", "add_to_query"],
 			('vegan',): [9, " AND r.vegan=True", "add_to_query"],
 			('gf', 'gluten', 'gluten-free'): [9, " AND r.gluten_free=True", "add_to_query"],
@@ -86,7 +86,11 @@ d = {
 		'return': 'question',
 		'bot_statement': "And last but not least, what's your price range?",
 		'branches': {
-
+			('poor', 'no money', 'feed me', 'please sir I want some more'): [15, " AND r.price_range=1", "add_to_query"],
+			('cheap', 'not too bad', 'just got a job'): [15, " AND r.price_range=2", "add_to_query"],
+			('going on a date', 'need to impress', 'pretend I haz money'): [15, " AND r.price_range=3", "add_to_query"],
+			('no object', 'rich', 'wealthy', 'darling', 'Mark Zuckerberg'): [15, " AND r.price_range=4", "add_to_query"],
+			('whatev',): [15]
 		}
 	},
 	10: {
@@ -155,10 +159,10 @@ def traverse_questions(last_state, user_answer):
 		cursor.execute(query)
 		return next_state
 
-	answer = user_answer.split()
+	# answer = user_answer.split()
 	for branch in d[locals()['last_state']]['branches']:
 			for each in branch:
-				if each in clean:
+				if each in user_answer:
 					print each
 					next_state = d[locals()['last_state']]['branches'][locals()['branch']][0]
 					print "next state: ", next_state
@@ -177,6 +181,9 @@ def traverse_questions(last_state, user_answer):
 						if results != []:
 							query = query + query_addition
 							print "all: ", results
+						else:
+							print "it's empty"
+
 
 	print "next state", next_state				
 	return next_state
