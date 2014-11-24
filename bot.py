@@ -14,14 +14,6 @@ question_path = []
 query_filters = []
 
 query = "SELECT r.name, c.category FROM restaurants AS r join categories AS c ON r.id=c.business_id"
-# join_half = "select name from restaurants as r"
-# where_half = " where"
-
-
-
-def join(categories_alias, join_query):
-	join_query = join_query + " join categories as %s on r.id=%s.business_id" % (categories_alias, categories_alias)
-	return join_query
 
 d = {
 	1: {
@@ -35,33 +27,33 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Are you hungry?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [3, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category NOT IN('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", "where_exists", 'c1'],
-			('no', 'nope', 'nah', 'not'): [4, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'where_exists', 'c1']
+			('yes', 'ya', 'yeah', 'sure', 'definitely'): [3, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category NOT IN('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", "add_to_query", 'c1'],
+			('no', 'nope', 'nah', 'not'): [4, " AND EXISTS(SELECT 1 FROM categories AS c1 WHERE c1.business_id=r.id AND c1.category IN ('Bars', 'Breweries', 'Coffee & Tea', 'Dive Bars', 'Sports Bars', 'Cafes', 'Tea Rooms', 'Wine Bars', 'Pubs'))", 'add_to_query', 'c1']
 		}
 	},
 	3: {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): [6, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'where_exists', "c2"],
-			('meal',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "where_exists", None]
+			('snack',): [6, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'add_to_query', "c2"],
+			('meal',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "add_to_query", None]
 		}
 	},
 	4: {
 		'return': 'question',
 		'bot_statement': 'Ok then. Is a stiff drink in order?',
 		'branches': {
-			('yes', 'ya', 'yeah', 'sure', 'definitely'): [10, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Bars', 'Breweries', 'Dive Bars', 'Sports Bars', 'Wine Bars', 'Pubs'))", "where_exists", None],
-			('no', 'nope', 'nah', 'not'): [11, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Coffee & Tea', 'Cafes', 'Tea Rooms'))", "where_exists", None]
+			('yes', 'ya', 'yeah', 'sure', 'definitely', 'yessir'): [10, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Bars', 'Breweries', 'Dive Bars', 'Sports Bars', 'Wine Bars', 'Pubs'))", "add_to_query", None],
+			('no', 'nope', 'nah', 'not'): [11, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Coffee & Tea', 'Cafes', 'Tea Rooms'))", "add_to_query", None]
 		}
 	},
 	5: {
 		'return': 'question',
 		'bot_statement': 'Are we thinking breakfast, lunch or dinner?',
 		'branches': {
-			('breakfast', 'brunch'): [8, " AND EXISTS(SELECT 1 FROM categories as c4 WHERE c4.business_id=r.id AND c4.category='Breakfast & Brunch')", "where_exists"],
-			('lunch'): [7],
-			('dinner'): [7]
+			('breakfast', 'brunch'): [8, " AND EXISTS(SELECT 1 FROM categories as c4 WHERE c4.business_id=r.id AND c4.category='Breakfast & Brunch')", "add_to_query"],
+			('lunch',): [7, " AND r.lunch=True", "add_to_query"],
+			('dinner',): [7, " AND r.dinner=True", "add_to_query"]
 		}
 	},
 	6: {
@@ -73,8 +65,9 @@ d = {
 		'bot_statement': 'Eat in, take out, or delivery?',
 		'branches': {
 			('eat in', 'in'): [8],
-			('take out', 'tk', 'out', 'pick up'): [8],
-			('delivery', 'deliver', 'delivered'): [8]
+			('take out', 'tk', 'out', 'pick up'): [8, " AND r.takeout=True", "add_to_query"],
+			('delivery', 'deliver', 'delivered'): [8, " AND r.delivery=True", "add_to_query"],
+			("LAZY",): [8, " AND r.drive_thru=True", "add_to_query"]
 		}
 	},
 	8: {
@@ -82,11 +75,11 @@ d = {
 		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
 		'branches': {
 			('nope', 'no', 'nah', 'none', 'negative'): [9],
-			('vegetarian',): [9],
-			('vegan',): [9],
-			('gf', 'gluten', 'gluten-free'): [9],
-			('soy',): [9],
-			('halal',): [9]
+			('vegetarian',): [9, " AND r.vegetarian=True", "add_to_query"],
+			('vegan',): [9, " AND r.vegan=True", "add_to_query"],
+			('gf', 'gluten', 'gluten-free'): [9, " AND r.gluten_free=True", "add_to_query"],
+			('soy',): [9, " AND r.soy_free=True", "add_to_query"],
+			('halal',): [9, " AND r.halal=True", "add_to_query"]
 		}
 	},
 	9: {
@@ -154,57 +147,36 @@ def traverse_questions(last_state, user_answer):
 
 	if last_state == 0:
 		return d[1]['bot_statement']
+
 	if last_state == 1:
 		next_state = d[1]['branches']['answer'][0]
 		query_piece = d[1]['branches']['answer'][1].replace('?', user_answer)
 		query = query + query_piece
-		print query
 		cursor.execute(query)
-		print "with city: ", cursor.fetchall()
 		return next_state
 
-	clean_answer = user_answer.split()
+	answer = user_answer.split()
 	for branch in d[locals()['last_state']]['branches']:
 			for each in branch:
-				if each in clean_answer:
+				if each in clean:
 					print each
 					next_state = d[locals()['last_state']]['branches'][locals()['branch']][0]
+					print "next state: ", next_state
 					answer_branch = branch
 					question_path.append((last_state, answer_branch))
 					print question_path
 
-					# cat_alias = d[locals()['last_state']]['branches'][locals()['branch']][3]
-					# fxn = d[locals()['last_state']]['branches'][locals()['branch']][2]
+
 					query_action = d[locals()['last_state']]['branches'][locals()['branch']][2]
+
 					query_addition = d[locals()['last_state']]['branches'][locals()['branch']][1]
-					if query_action == 'where_exists':
-						query = query + query_addition
-						# join_half = fxn(cat_alias, join_half)
-					# filters = d[locals()['last_state']]['branches'][locals()['branch']][1]
-					# where_half = where_half + filters
-					# query = join_half + where_half
-					print query
-					cursor.execute(query)
-					results = cursor.fetchall()
-					if results != []:
-						print "all: ", results
 
-
-	# query = query.filter(f)
-	# print "new query: ", query
-	# newq = query.filter((model.Category.category=='Bakeries') | (model.Category.category=='Dessert') | (model.Category.category=='Ice Cream & Frozen Yogurt'))
-	
-	# run_query = model.session.query(model.Restaurant).join(model.Category).filter(model.Category.category=='Food').filter((model.Category.category=='Bakeries') OR (model.Category.category=='Dessert') OR (model.Category.category=='Ice Cream & Frozen Yogurt')).all()
-
-	# run_query = model.session.query(model.Restaurant).filter(model.Restaurant.categories.any(model.Category.category=='Bakeries')).all()
-
-	# run_query = model.session.query(model.Restaurant).join(model.Category).filter(or_(model.Category.category=='Bakeries', model.Category.category=='Ice Cream & Frozen Yogurt')).filter(model.Category.category=='Food').all()
-
-
-
-
-	# for i in run_query[0].categories:
-	# 	print i.category
+					if query_action == 'add_to_query':
+						cursor.execute(query + query_addition)
+						results = cursor.fetchall()
+						if results != []:
+							query = query + query_addition
+							print "all: ", results
 
 	print "next state", next_state				
 	return next_state
@@ -258,9 +230,7 @@ def main():
 	start = raw_input().lower()
 	if "hi" in start or "hello" in start and "ronnie" in start:
 		print "Well hello there friend!"
-		print "What city are you in?"
-		city = raw_input()
-		traverse_questions(0, None)
+		print traverse_questions(0, None)
 	else:
 		print "I'm Ronnie. I have just met you and a looove you will you be my master?"
 
