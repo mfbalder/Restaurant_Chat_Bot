@@ -3,6 +3,7 @@ from nltk.corpus import stopwords
 import model
 from sqlalchemy import or_, and_
 import psycopg2
+import random
 
 dbconn = psycopg2.connect('dbname=restaurantrec host=localhost port=5432')
 cursor = dbconn.cursor()
@@ -13,7 +14,7 @@ city = None
 question_path = []
 query_filters = []
 
-query = "SELECT r.name, c.category FROM restaurants AS r join categories AS c ON r.id=c.business_id"
+query = "SELECT r.name FROM restaurants AS r join categories AS c ON r.id=c.business_id join categorylookup AS l ON l.category=c.category"
 
 d = {
 	1: {
@@ -35,7 +36,7 @@ d = {
 		'return': 'question',
 		'bot_statement': 'Snack or meal?',
 		'branches': {
-			('snack',): [6, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts'))", 'add_to_query', "c2"],
+			('snack',): [6, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Bakeries', 'Ice Cream & Frozen Yogurt', 'Donuts', 'Cafes', 'Candy Stores', 'Desserts', 'Pretzels', 'Cupcakes', 'Gelato'))", 'add_to_query', "c2"],
 			('meal',): [5, " AND EXISTS(SELECT 1 FROM categories as c2 WHERE c2.business_id=r.id AND c2.category IN ('Restaurants'))", "add_to_query", None]
 		}
 	},
@@ -58,13 +59,18 @@ d = {
 	},
 	6: {
 		'return': 'question',
-		'bot_statement': 0#QUERY*****
+		'bot_statement': 'Personally WOOF! I really like tennis balls and peanut butter. Which do you prefer?',
+		'branches': {
+			('tennis ball', 'ball'): [15, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Donuts', 'Desserts', 'Bakeries', 'Cafes', 'Cupcakes', 'Pretzels'))", "add_to_query"],
+			('peanut',): [15, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category IN ('Ice Cream & Frozen Yogurt', 'Gelato'))", "add_to_query"],
+			('trick question',): [15, " AND EXISTS(SELECT 1 FROM categories as c3 WHERE c3.business_id=r.id AND c3.category = 'Candy Stores')", "add_to_query"]
+		}
 	},
 	7: {
 		'return': 'question',
 		'bot_statement': 'Eat in, take out, or delivery?',
 		'branches': {
-			('eat in', 'in'): [8],
+			('eat in', 'in'): [8, None, None],
 			('takeout', 'tk', 'out', 'pick up'): [8, " AND r.takeout=True", "add_to_query"],
 			('delivery', 'deliver', 'delivered'): [8, " AND r.delivery=True", "add_to_query"],
 			("LAZY",): [8, " AND r.drive_thru=True", "add_to_query"]
@@ -75,9 +81,9 @@ d = {
 		'bot_statement': 'What about dietary concerns? Gluten? Soy? Vegan? Etc.?',
 		'branches': {
 			('nope', 'no', 'nah', 'none', 'negative'): [9, None, "no_change"],
-			('vegetarian',): [9, " AND r.vegetarian=True", "add_to_query"],
+			('vegetarian',): [9, " AND (r.vegetarian=True OR EXISTS(SELECT 1 FROM categories AS c7 WHERE c7.business_id=r.id AND c7.category='Vegetarian'))", "add_to_query"],
 			('vegan',): [9, " AND r.vegan=True", "add_to_query"],
-			('gf', 'gluten', 'gluten-free'): [9, " AND r.gluten_free=True", "add_to_query"],
+			('gf', 'gluten', 'gluten-free'): [9, " AND (r.gluten_free=True OR EXISTS(SELECT 1 FROM categories as c5 WHERE c5.business_id=r.id AND c5.category='Gluten-Free'))", "add_to_query"],
 			('soy',): [9, " AND r.soy_free=True", "add_to_query"],
 			('halal',): [9, " AND r.halal=True", "add_to_query"]
 		}
@@ -95,40 +101,50 @@ d = {
 	},
 	10: {
 		'return': 'question',
-		'bot_statement': 'Righto, bar it is! What kind of vibe were we thinkin? Romantic? Intimate...? Chill yo?',
+		'bot_statement': 'Righto, bar it is! What kind of vibe were we thinkin? Chill? Intimate? Romantic...? Ooo! Are you going on a date?? Tell me, tell me!',
 		'branches': {
-			('intimate',): 0,####QUERY,
-			('romantic',): [12],
-			('chill', 'casual'): [13]
+			('intimate','quiet'): [12, " AND r.intimate=True", "add_to_query"],
+			('romantic', 'hot date'): [16, " AND r.romantic=True", "add_to_query"],
+			('chill', 'casual','yo'): [13, " AND (r.casual=True OR r.divey=True", "add_to_query"]
 		}
 	},
 	11: {
 		'return': 'question',
 		'bot_statement': 'Do you have a preference for coffee or tea?\nTea, right? You know you like tea! (Tea.)',
 		'branches': {
-			('cafe', 'coffee', 'cappuccino'): 0,###########,
-			('tea', 'leaf', 'leaves'): 0,#######,
-			('nah', 'nope', 'no preference', "don't care", 'negative'): 0######
+			('lovely cucumber sandwiches', 'high society'): [17, " AND EXISTS(SELECT 1 FROM categories AS c4 WHERE c4.business_id=r.id AND c4.category IN ('Tea Rooms')", "add_to_query"],
+			('nah', 'nope', 'no preference', "don't care", 'negative'): [17, None, None]
 		}
 
 	},
 	12: {
+		'return': 'question',
+		'bot_statement': "You just want wine, don't you?",
+		'branches': {
+			('yes sir', 'yup', "that's correct", 'shush'): [16, " AND EXISTS(SELECT 1 FROM categories AS c4 WHERE c4.business_id=r.id AND c4.category IN ('Wine Bars'))", "add_to_query"]
+		}
+	},
+	13: {
+		'return': 'question',
+		'bot_statement': 'Mirror mirror on the wall, tell me the one that just wants to watch sports and drink beers of them all...',
+		'branches': {
+			('hey now', 'fine'): [16, " AND EXISTS(SELECT 1 FROM categories as c4 WHERE c4.business_id=r.id AND c4.category IN ('Dive Bars', 'Sports Bars')", "add_to_query"]
+		}
+	}, 
+	15: {
+		'return': 'query',
+		'bot_statement': "Here are your category choices. Pick one.",
+		'next_step': [20, " AND EXISTS(SELECT 1 FROM categories as c6 WHERE c6.business_id=r.id AND c6.category = '?') AND EXISTS(SELECT 1 from categorylookup as l WHERE l.category=c.category)", "add_to_query"]
+	},
+	16: {
+
+	},
+	17: {
 
 	}
+
 }
 
-
-
-
-def run_query(data_dict, data_attr, value):
-	data_dict.setdefault(data, value)
-
-def generate_query(queryobj, listoffilters):
-	l = ""
-	for f in listoffilters:
-		l += ".filter(l)"
-
-	return l
 
 
 def traverse_questions(last_state, user_answer):
@@ -159,31 +175,52 @@ def traverse_questions(last_state, user_answer):
 		cursor.execute(query)
 		return next_state
 
+	if d[locals()['last_state']]['return'] == 'question':
 	# answer = user_answer.split()
-	for branch in d[locals()['last_state']]['branches']:
-			for each in branch:
-				if each in user_answer:
-					print each
-					next_state = d[locals()['last_state']]['branches'][locals()['branch']][0]
-					print "next state: ", next_state
-					answer_branch = branch
-					question_path.append((last_state, answer_branch))
-					print question_path
+		for branch in d[locals()['last_state']]['branches']:
+				for each in branch:
+					if each in user_answer:
+						print each
+						next_state = d[locals()['last_state']]['branches'][locals()['branch']][0]
+						print "next state: ", next_state
+						answer_branch = branch
+						question_path.append((last_state, answer_branch))
+						print question_path
 
 
-					query_action = d[locals()['last_state']]['branches'][locals()['branch']][2]
+						query_action = d[locals()['last_state']]['branches'][locals()['branch']][2]
 
-					query_addition = d[locals()['last_state']]['branches'][locals()['branch']][1]
+						query_addition = d[locals()['last_state']]['branches'][locals()['branch']][1]
 
-					if query_action == 'add_to_query':
-						cursor.execute(query + query_addition)
-						results = cursor.fetchall()
-						if results != []:
-							query = query + query_addition
-							print "all: ", results
-						else:
-							print "it's empty"
+						if query_action == 'add_to_query':
+							cursor.execute(query + query_addition + " GROUP BY r.name")
+							results = cursor.fetchall()
+							if results != []:
+								query = query + query_addition
+								print "all: ", results
+							else:
+								print "it's empty"
 
+
+	if d[locals()['last_state']]['return'] == 'query':
+		cat_choices = query.replace('r.name', 'c.category') + " AND r.stars>=4 GROUP BY c.category"
+		print cat_choices
+		bot_question = d[locals()['last_state']]['bot_statement']
+		print bot_question
+		cursor.execute(cat_choices)
+		results = cursor.fetchall()
+		result_choices = random.sample(results, 5)
+		print result_choices
+		for item in result_choices:
+			print item[0]
+
+		answer = raw_input()
+
+		next_state = d[locals()['last_state']]['next_step'][0]
+		query_addition = d[locals()['last_state']]['next_step'][1].replace('?', answer)
+		cursor.execute(query + query_addition + " ORDER BY r.stars LIMIT 1")
+		a = cursor.fetchone()
+		print "I give you...", a[0]
 
 	print "next state", next_state				
 	return next_state
